@@ -295,21 +295,13 @@ class StreamingSession:
     # ── URL display ───────────────────────────────────────────────────────────
 
     def _print_urls(self, livekit_url: str, browser_url: str) -> None:
-        console.print(Rule())
-
-        # ① LiveKit Room URL
-        console.print("[bold cyan]① LiveKit Room URL[/bold cyan] [dim](OBS Browser Source → liveKitUrl 參數)[/dim]")
-        console.print(f"   [white]{livekit_url}[/white]\n")
-
-        # ② 瀏覽器預覽完整連結 — 印成純文字不折行，方便複製
-        console.print("[bold yellow]② 瀏覽器預覽連結[/bold yellow] [dim]— 複製整行貼到 Chrome / Safari，直接看到 Katya[/dim]")
-        # 用 print() 而不是 console.print()，避免 Rich 折行截斷 URL
-        print(f"   {browser_url}\n", flush=True)
-
-        console.print(
-            "[dim]📺 OBS：來源 → ＋ → 瀏覽器 → 貼上②連結 → 寬1920 高1080 → 確定[/dim]"
-        )
-        console.print(Rule())
+        print("", flush=True)
+        print("  OBS Browser Source 用 (liveKitUrl 參數)：", flush=True)
+        print(f"  {livekit_url}", flush=True)
+        print("", flush=True)
+        print("  📺 OBS：來源→＋→瀏覽器→貼上瀏覽器預覽連結→寬1920 高1080→確定", flush=True)
+        print("", flush=True)
+        sys.stdout.flush()
 
     # ── main run ──────────────────────────────────────────────────────────────
 
@@ -323,69 +315,67 @@ class StreamingSession:
     ) -> None:
         self._running = True
 
-        # ── Connect LiveAvatar ────────────────────────────────────────────────
+        # ── 第一件事：立刻印出啟動訊息（全部用 print + flush，不用 Rich）────────
         self._debug = debug
         self.la_session.debug   = debug
         self.la_session.sandbox = sandbox
+
+        print("", flush=True)
+        print("=" * 60, flush=True)
+        print("  VIRTUAL STREAMER 啟動中", flush=True)
+        print(f"  Avatar: {self.avatar['display_name']}  主題: {self.theme}", flush=True)
+        print("=" * 60, flush=True)
+        sys.stdout.flush()
 
         livekit_url  = ""
         browser_url  = ""
         la_ok        = False
         try:
-            sb_note = " (sandbox, 不消耗 credits)" if sandbox else ""
-            print(f"▶ [1/3] 取得 LiveAvatar session token{sb_note}...", flush=True)
+            sb_note = " (sandbox)" if sandbox else ""
+            print(f"\n[1/3] 正在建立 session{sb_note}...", flush=True)
+            sys.stdout.flush()
             await asyncio.wait_for(self.la_session.create(), timeout=20)
-            print("✓ [1/3] session token OK", flush=True)
+            print("[1/3] ✓ Session token 取得成功", flush=True)
+            sys.stdout.flush()
 
-            print("▶ [2/3] 啟動 session / 取得 LiveKit credentials...", flush=True)
+            print("[2/3] 正在啟動 LiveAvatar session...", flush=True)
+            sys.stdout.flush()
             await asyncio.wait_for(self.la_session.start(), timeout=20)
-            print("✓ [2/3] LiveKit credentials OK", flush=True)
+            print("[2/3] ✓ LiveKit credentials 取得成功", flush=True)
+            sys.stdout.flush()
 
-            print("▶ [3/3] 連接 LiveKit room + 發布音訊 track...", flush=True)
+            print("[3/3] 正在連接 LiveKit room...", flush=True)
+            sys.stdout.flush()
             await asyncio.wait_for(self.la_session.connect_ws(), timeout=35)
-            print("✓ [3/3] LiveKit 連線完成！", flush=True)
+            print("[3/3] ✓ LiveKit 連線成功！", flush=True)
+            sys.stdout.flush()
 
             livekit_url = self.la_session.livekit_url or ""
             browser_url = self.la_session.browser_preview_url or ""
             la_ok = True
 
-        except asyncio.TimeoutError as e:
-            step = "connect_ws" if not self.la_session.session_id else \
-                   "start" if not self.la_session.livekit_url else "connect_ws"
-            console.print(f"[red]✗ LiveAvatar 連線超時（step: {step}）[/]")
-            console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
+            # ── 立刻印出 URL，這是最重要的資訊 ──────────────────────────────
+            print("", flush=True)
+            print("=" * 60, flush=True)
+            print("瀏覽器預覽（複製貼到 Chrome 即可看到 Katya）：", flush=True)
+            print(browser_url, flush=True)
+            print("=" * 60, flush=True)
+            print("", flush=True)
+            sys.stdout.flush()
+
+        except asyncio.TimeoutError:
+            step = ("3/3 connect_ws" if self.la_session.livekit_url
+                    else "2/3 start" if self.la_session.session_id
+                    else "1/3 token")
+            print(f"✗ 連線超時 (step {step})，繼續執行（無虛擬人）", flush=True)
+            sys.stdout.flush()
         except RuntimeError as e:
             msg = str(e)
-            if "credits" in msg.lower():
-                console.print(Panel(
-                    f"[bold red]{msg}[/]",
-                    title="💳 Credits 不足",
-                    border_style="red",
-                ))
-            else:
-                console.print(f"[red]✗ LiveAvatar 連線失敗: {msg}[/]")
-            console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
+            print(f"✗ LiveAvatar 錯誤：{msg}", flush=True)
+            sys.stdout.flush()
         except Exception as e:
-            console.print(f"[red]✗ LiveAvatar 連線失敗: {type(e).__name__}: {e}[/]")
-            console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
-
-        # ── Startup banner ────────────────────────────────────────────────────
-        platform_icons = {"youtube": "▶ YouTube", "tiktok": "🎵 TikTok", "test": "✍ 測試模式"}
-        mode_tag = (
-            "  [bold yellow]🏖  SANDBOX MODE[/bold yellow] [dim]（不消耗 credits，畫面有水印）[/dim]"
-            if sandbox else ""
-        )
-        console.print(Panel(
-            f"[bold green]虛擬主播直播系統啟動[/]\n"
-            f"Avatar  : [cyan]{self.avatar['display_name']}[/]   主題: [cyan]{self.theme}[/]\n"
-            f"平台    : [bold white]{platform_icons.get(platform, platform)}[/]\n"
-            f"Avatar ID: [dim]{self.avatar['avatar_id']}[/]{mode_tag}",
-            title="✦ VIRTUAL STREAMER ✦",
-            border_style="green" if not sandbox else "yellow",
-        ))
-
-        if livekit_url and browser_url:
-            self._print_urls(livekit_url, browser_url)
+            print(f"✗ 未知錯誤：{type(e).__name__}: {e}", flush=True)
+            sys.stdout.flush()
 
         # ── Opening ───────────────────────────────────────────────────────────
         await self._speak_auto("opening")
