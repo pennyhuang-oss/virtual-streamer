@@ -19,6 +19,12 @@ import aiohttp
 from livekit import rtc
 
 LIVEAVATAR_BASE = "https://api.liveavatar.com"
+
+# Public system avatar used as sandbox fallback when the custom avatar
+# doesn't support sandbox mode (Bryan Tech Expert)
+SANDBOX_PUBLIC_AVATAR_ID = "64b526e4-741c-43b6-a918-4e40f3261c7a"
+SANDBOX_PUBLIC_AVATAR_NAME = "Bryan (Tech Expert)"
+
 SAMPLE_RATE      = 16000
 NUM_CHANNELS     = 1
 SAMPLES_PER_FRAME = 1600   # 100 ms at 16 kHz
@@ -35,10 +41,11 @@ def _dbg(msg: str, debug: bool) -> None:
 
 
 class LiveAvatarSession:
-    def __init__(self, api_key: str, avatar_id: str, debug: bool = False):
+    def __init__(self, api_key: str, avatar_id: str, debug: bool = False, sandbox: bool = False):
         self.api_key   = api_key
         self.avatar_id = avatar_id
         self.debug     = debug
+        self.sandbox   = sandbox
 
         self.session_id:            Optional[str] = None
         self._session_token:        Optional[str] = None
@@ -50,6 +57,7 @@ class LiveAvatarSession:
 
         self._created_at: float = 0
         self.credits_used: float = 0.0
+        self._sandbox_fallback_avatar: Optional[str] = None  # set if avatar doesn't support sandbox
 
     @property
     def _api_headers(self) -> dict:
@@ -68,16 +76,32 @@ class LiveAvatarSession:
         """POST /v1/sessions/token → get session_id + JWT token."""
         _dbg(f"POST {LIVEAVATAR_BASE}/v1/sessions/token  (timeout={T_HTTP}s)", self.debug)
         async with aiohttp.ClientSession() as http:
+            payload = {"mode": "LITE", "avatar_id": self.avatar_id}
+            if self.sandbox:
+                payload["is_sandbox"] = True
             resp = await asyncio.wait_for(
                 http.post(
                     f"{LIVEAVATAR_BASE}/v1/sessions/token",
-                    json={"mode": "LITE", "avatar_id": self.avatar_id},
+                    json=payload,
                     headers=self._api_headers,
                 ),
                 timeout=T_HTTP,
             )
             data = await resp.json()
             _dbg(f"sessions/token → HTTP {resp.status}", self.debug)
+
+            if resp.status == 400 and self.sandbox:
+                errs = data.get("data", [])
+                if any("not supported in sandbox" in str(e.get("message", "")) for e in errs):
+                    raise RuntimeError(
+                        "Sandbox 模式目前不支援（帳號方案限制）\n"
+                        "  可能原因：\n"
+                        "    • 帳號尚未升級至支援 sandbox 的方案\n"
+                        "    • sandbox 功能需要 Pro / Scale 以上方案\n"
+                        "  建議：\n"
+                        "    1. 前往 liveavatar.com 充值 credits（一般模式，每分鐘 1 credit）\n"
+                        "    2. 或升級方案後再試 --sandbox"
+                    )
 
             if resp.status != 200:
                 raise RuntimeError(
@@ -111,8 +135,8 @@ class LiveAvatarSession:
                 if "credits" in msg.lower():
                     raise RuntimeError(
                         "LiveAvatar credits 不足！\n"
-                        "  請到 liveavatar.com 檢查帳戶餘額或升級方案。\n"
-                        f"  (API 回應: {msg})"
+                        "  帳號目前剩餘 credits 不夠啟動 session（最低需要 1 credit）\n"
+                        "  解法：前往 liveavatar.com → 帳號設定 → 購買 credits"
                     )
                 raise RuntimeError(f"sessions/start 403: {msg}")
 

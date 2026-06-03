@@ -334,18 +334,21 @@ class StreamingSession:
         youtube_chat_id: str = "",
         tiktok_username: str = "",
         debug: bool = False,
+        sandbox: bool = False,
     ) -> None:
         self._running = True
 
         # ── Connect LiveAvatar ────────────────────────────────────────────────
         self._debug = debug
-        self.la_session.debug = debug
+        self.la_session.debug   = debug
+        self.la_session.sandbox = sandbox
 
         livekit_url  = ""
         browser_url  = ""
         la_ok        = False
         try:
-            print("▶ [1/3] 取得 LiveAvatar session token...", flush=True)
+            sb_note = " (sandbox, 不消耗 credits)" if sandbox else ""
+            print(f"▶ [1/3] 取得 LiveAvatar session token{sb_note}...", flush=True)
             await asyncio.wait_for(self.la_session.create(), timeout=20)
             print("✓ [1/3] session token OK", flush=True)
 
@@ -383,13 +386,17 @@ class StreamingSession:
 
         # ── Startup banner ────────────────────────────────────────────────────
         platform_icons = {"youtube": "▶ YouTube", "tiktok": "🎵 TikTok", "test": "✍ 測試模式"}
+        mode_tag = (
+            "  [bold yellow]🏖  SANDBOX MODE[/bold yellow] [dim]（不消耗 credits，畫面有水印）[/dim]"
+            if sandbox else ""
+        )
         console.print(Panel(
             f"[bold green]虛擬主播直播系統啟動[/]\n"
             f"Avatar  : [cyan]{self.avatar['display_name']}[/]   主題: [cyan]{self.theme}[/]\n"
             f"平台    : [bold white]{platform_icons.get(platform, platform)}[/]\n"
-            f"Avatar ID: [dim]{self.avatar['avatar_id']}[/]",
+            f"Avatar ID: [dim]{self.avatar['avatar_id']}[/]{mode_tag}",
             title="✦ VIRTUAL STREAMER ✦",
-            border_style="green",
+            border_style="green" if not sandbox else "yellow",
         ))
 
         if livekit_url and browser_url:
@@ -462,7 +469,8 @@ async def main() -> None:
     parser.add_argument("--theme",    default="直播", help="直播主題（預設：直播）")
     parser.add_argument("--chat-id",  default="",     help="YouTube Live Chat ID")
     parser.add_argument("--username", default="",     help="TikTok @username")
-    parser.add_argument("--debug",    action="store_true", help="顯示詳細 debug 訊息")
+    parser.add_argument("--debug",   action="store_true", help="顯示詳細 debug 訊息")
+    parser.add_argument("--sandbox", action="store_true", help="使用 Sandbox 模式（不消耗 credits，有水印）")
     args = parser.parse_args()
 
     cfg    = load_config()
@@ -481,6 +489,7 @@ async def main() -> None:
             youtube_chat_id=args.chat_id,
             tiktok_username=args.username,
             debug=args.debug,
+            sandbox=args.sandbox,
         )
     except KeyboardInterrupt:
         pass
