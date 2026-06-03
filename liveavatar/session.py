@@ -50,7 +50,8 @@ class LiveAvatarSession:
         self.session_id:            Optional[str] = None
         self._session_token:        Optional[str] = None
         self._livekit_url:          Optional[str] = None
-        self._livekit_client_token: Optional[str] = None
+        self._livekit_client_token: Optional[str] = None   # sub=client  → browser viewer
+        self._livekit_agent_token:  Optional[str] = None   # sub=convai  → Python audio publisher
 
         self._room:         Optional[rtc.Room]        = None
         self._audio_source: Optional[rtc.AudioSource] = None
@@ -148,21 +149,28 @@ class LiveAvatarSession:
 
             d = data["data"]
             self._livekit_url          = d["livekit_url"]
-            self._livekit_client_token = d["livekit_client_token"]
+            self._livekit_client_token = d["livekit_client_token"]   # browser viewer token (sub=client)
+            self._livekit_agent_token  = d["livekit_agent_token"]    # audio publisher token (sub=convai)
             _dbg(f"livekit_url = {self._livekit_url}", self.debug)
+            _dbg("client_token sub=client (→ browser URL)", self.debug)
+            _dbg("agent_token  sub=convai (→ Python audio publisher)", self.debug)
 
     # ── Step 3 ────────────────────────────────────────────────────────────────
 
     async def connect_ws(self) -> None:
-        """Join LiveKit room and publish audio track."""
-        _dbg(f"rtc.Room().connect({self._livekit_url})  (timeout={T_LK}s)", self.debug)
+        """Join LiveKit room as audio publisher (sub=convai) and publish audio track.
+
+        Uses livekit_agent_token (sub=convai) so the browser can simultaneously
+        connect with livekit_client_token (sub=client) without identity conflict.
+        """
+        _dbg(f"rtc.Room().connect as convai (agent token)  (timeout={T_LK}s)", self.debug)
         self._room         = rtc.Room()
         self._audio_source = rtc.AudioSource(SAMPLE_RATE, NUM_CHANNELS)
         audio_track        = rtc.LocalAudioTrack.create_audio_track("tts-audio", self._audio_source)
         options            = rtc.RoomOptions(auto_subscribe=False)
 
         await asyncio.wait_for(
-            self._room.connect(self._livekit_url, self._livekit_client_token, options),
+            self._room.connect(self._livekit_url, self._livekit_agent_token, options),
             timeout=T_LK,
         )
         _dbg("LiveKit room connected", self.debug)
