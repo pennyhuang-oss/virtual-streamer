@@ -158,6 +158,10 @@ class LiveAvatarSession:
                 )
             self.session_id = None
 
+    @property
+    def livekit_url(self) -> Optional[str]:
+        return self._livekit_url
+
     def age_minutes(self) -> float:
         return (time.time() - self._created_at) / 60 if self._created_at else 0
 
