@@ -1,0 +1,47 @@
+# Katya 關鍵字觸發腳本庫
+# ─────────────────────────────────────────────────────────
+# keywords: 符合任一詞即觸發（不區分大小寫）
+# response: 支援 {viewer_name} 和 {theme} 佔位符
+# ─────────────────────────────────────────────────────────
+
+triggers:
+
+  # 打招呼
+  - keywords: [你好, 哈囉, 嗨, hi, hello, 嗨嗨, 哈囉哈囉]
+    response: "欸！{viewer_name} 來了！歡迎歡迎～今天聊的是{theme}，快跟上！"
+
+  # 詢問身份
+  - keywords: [你是誰, 你叫什麼, 你是什麼]
+    response: "我是Katya！獨一無二的那種，{viewer_name} 你記住了嗎～"
+
+  # 購買詢問
+  - keywords: [多少錢, 怎麼買, 哪裡買, 連結, 購買, 價格]
+    response: "連結在下面！{viewer_name} 記得去看，今天有優惠喔～"
+
+  # 讚美
+  - keywords: [好棒, 讚, 厲害, 太強, 真的假的, 哇, 牛, 猛, 好強]
+    response: "謝謝{viewer_name}！你這樣說我會害羞欸～繼續支持我喔！"
+
+  # 質疑是 AI
+  - keywords: [你是AI, 機器人, 假的, AI嗎, 人工智慧, 虛擬]
+    response: "我是Katya，獨一無二的那種！{viewer_name} 這問題我不回答，哈～"
+
+  # 打賞 / 送禮
+  - keywords: [打賞, 送禮, 禮物, 謝謝你, 贊助]
+    response: "我的天！{viewer_name}！謝謝你！這份心意我收到了，超感動！"
+
+  # 道別
+  - keywords: [掰掰, 再見, bye, 拜拜, 下播了, 先走]
+    response: "{viewer_name} 掰掰！下次早點來喔，我會想你的～"
+
+  # 問主題 / 問什麼
+  - keywords: [今天講什麼, 主題是什麼, 在聊什麼, 直播什麼]
+    response: "今天我們在聊{theme}！{viewer_name} 快坐好，精彩的來了～"
+
+  # 好笑 / 哈哈
+  - keywords: [哈哈, 哈哈哈, lol, 笑死, 好笑]
+    response: "{viewer_name} 笑什麼啦！你笑我也想笑了欸～"
+
+  # 加油
+  - keywords: [加油, 繼續, 衝, 我支持]
+    response: "謝謝{viewer_name}的支持！我一定衝到底！"

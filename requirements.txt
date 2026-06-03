@@ -7,3 +7,4 @@ pyyaml>=6.0.1
 rich>=13.7.0
 livekit>=1.1.0
 livekit-api>=1.1.0
+TikTokLive>=6.0.0

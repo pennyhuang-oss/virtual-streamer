@@ -1,7 +1,7 @@
 name: katya
 display_name: "Katya"
 avatar_id: "65cca4cf-b7c8-4619-871f-84e2cf8b21d4"
-voice_id: ""  # 填入 ElevenLabs voice ID
+voice_id: "${KATYA_VOICE_ID}"  # 從 .env 讀取，或直接填入：tFy01GI19m2khgw8SCOG
 
 persona: |
   你是 Katya，一個充滿活力的虛擬直播主。
