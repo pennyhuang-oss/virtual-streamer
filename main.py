@@ -297,33 +297,18 @@ class StreamingSession:
     def _print_urls(self, livekit_url: str, browser_url: str) -> None:
         console.print(Rule())
 
-        # ① LiveKit Room URL（for OBS Browser Source）
-        console.print(Panel(
-            f"[bold white]{livekit_url}[/]",
-            title="① LiveKit Room URL（貼入 OBS Browser Source 的 liveKitUrl 參數）",
-            border_style="cyan",
-            padding=(0, 1),
-        ))
+        # ① LiveKit Room URL
+        console.print("[bold cyan]① LiveKit Room URL[/bold cyan] [dim](OBS Browser Source → liveKitUrl 參數)[/dim]")
+        console.print(f"   [white]{livekit_url}[/white]\n")
 
-        # ② 瀏覽器直接開啟預覽
-        console.print(Panel(
-            f"[bold yellow]{browser_url}[/]",
-            title="② 瀏覽器預覽 — 直接複製貼上到 Chrome / Safari 即可看到 Katya",
-            border_style="yellow",
-            padding=(0, 1),
-        ))
+        # ② 瀏覽器預覽完整連結 — 印成純文字不折行，方便複製
+        console.print("[bold yellow]② 瀏覽器預覽連結[/bold yellow] [dim]— 複製整行貼到 Chrome / Safari，直接看到 Katya[/dim]")
+        # 用 print() 而不是 console.print()，避免 Rich 折行截斷 URL
+        print(f"   {browser_url}\n", flush=True)
 
-        # OBS 步驟說明
-        console.print(Panel(
-            "1. 複製上方 [yellow]② 瀏覽器預覽連結[/yellow]\n"
-            "2. OBS → 來源 → ＋ → [bold]瀏覽器（Browser Source）[/bold]\n"
-            "3. 把連結貼入 URL 欄位\n"
-            "4. 寬 [bold]1920[/bold]  ×  高 [bold]1080[/bold]，勾選「關閉時停止播放」\n"
-            "5. 確定 → Katya 的畫面就會出現在 OBS",
-            title="📺 OBS 設定（3 分鐘完成）",
-            border_style="dim",
-            padding=(0, 2),
-        ))
+        console.print(
+            "[dim]📺 OBS：來源 → ＋ → 瀏覽器 → 貼上②連結 → 寬1920 高1080 → 確定[/dim]"
+        )
         console.print(Rule())
 
     # ── main run ──────────────────────────────────────────────────────────────
