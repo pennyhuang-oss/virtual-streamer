@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import yaml
 
@@ -36,7 +36,7 @@ class CommentHandler:
         self,
         avatar_name: str,
         scripts_base: Path,
-        claude_client: "anthropic.Anthropic | None" = None,
+        claude_client: Optional["anthropic.Anthropic"] = None,
         claude_model: str = "claude-haiku-4-5",
     ):
         self.avatar_name  = avatar_name
@@ -72,7 +72,7 @@ class CommentHandler:
 
     def _match_trigger(
         self, message: str, viewer_name: str, context: dict
-    ) -> str | None:
+    ) -> Optional[str]:
         """Return formatted response if any keyword matches, else None."""
         lower_msg = message.lower()
         for trig in self.triggers:

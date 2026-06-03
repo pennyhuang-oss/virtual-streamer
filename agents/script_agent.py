@@ -4,6 +4,7 @@ import glob
 import asyncio
 import anthropic
 from pathlib import Path
+from typing import Optional
 
 
 TRIGGER_DIR_MAP = {
@@ -30,7 +31,7 @@ class ScriptAgent:
         pattern = str(self.script_base / folder / "*.txt")
         return glob.glob(pattern)
 
-    def _pick_script(self, files: list[str]) -> str | None:
+    def _pick_script(self, files: list) -> Optional[str]:
         unused = [f for f in files if f not in self._used_scripts]
         if not unused:
             self._used_scripts.clear()

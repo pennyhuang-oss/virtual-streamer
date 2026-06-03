@@ -14,6 +14,7 @@ Required env vars:
 import asyncio
 import aiohttp
 from datetime import datetime
+from typing import Optional, Tuple
 from rich.console import Console
 from .base import Comment, CommentCallback
 
@@ -28,7 +29,7 @@ class YouTubeChatListener:
         self.api_key = api_key
         self.live_chat_id = live_chat_id
         self._seen_ids: set[str] = set()
-        self._page_token: str | None = None
+        self._page_token: Optional[str] = None
         self._poll_interval: float = DEFAULT_POLL_INTERVAL
 
     async def listen(self, callback: CommentCallback) -> None:
@@ -68,7 +69,7 @@ class YouTubeChatListener:
 
                 await asyncio.sleep(self._poll_interval)
 
-    async def _fetch(self, session: aiohttp.ClientSession) -> tuple[list, str | None, int]:
+    async def _fetch(self, session: aiohttp.ClientSession) -> Tuple[list, Optional[str], int]:
         params = {
             "part": "snippet,authorDetails",
             "liveChatId": self.live_chat_id,
