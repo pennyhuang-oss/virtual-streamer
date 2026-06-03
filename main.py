@@ -117,6 +117,7 @@ class StreamingSession:
             claude_client=self._claude,
             claude_model="claude-haiku-4-5",
         )
+        self._debug = False  # set by run()
         self.la_session = LiveAvatarSession(
             api_key=la_key,
             avatar_id=avatar["avatar_id"],
@@ -332,22 +333,52 @@ class StreamingSession:
         platform: str,
         youtube_chat_id: str = "",
         tiktok_username: str = "",
+        debug: bool = False,
     ) -> None:
         self._running = True
 
         # ── Connect LiveAvatar ────────────────────────────────────────────────
+        self._debug = debug
+        self.la_session.debug = debug
+
         livekit_url  = ""
         browser_url  = ""
+        la_ok        = False
         try:
-            console.print("[dim]建立 LiveAvatar session...[/]")
-            await self.la_session.create()
-            await self.la_session.start()
-            await self.la_session.connect_ws()
+            print("▶ [1/3] 取得 LiveAvatar session token...", flush=True)
+            await asyncio.wait_for(self.la_session.create(), timeout=20)
+            print("✓ [1/3] session token OK", flush=True)
+
+            print("▶ [2/3] 啟動 session / 取得 LiveKit credentials...", flush=True)
+            await asyncio.wait_for(self.la_session.start(), timeout=20)
+            print("✓ [2/3] LiveKit credentials OK", flush=True)
+
+            print("▶ [3/3] 連接 LiveKit room + 發布音訊 track...", flush=True)
+            await asyncio.wait_for(self.la_session.connect_ws(), timeout=35)
+            print("✓ [3/3] LiveKit 連線完成！", flush=True)
+
             livekit_url = self.la_session.livekit_url or ""
             browser_url = self.la_session.browser_preview_url or ""
-            console.print("[green]✓ LiveAvatar 連線成功[/]")
+            la_ok = True
+
+        except asyncio.TimeoutError as e:
+            step = "connect_ws" if not self.la_session.session_id else \
+                   "start" if not self.la_session.livekit_url else "connect_ws"
+            console.print(f"[red]✗ LiveAvatar 連線超時（step: {step}）[/]")
+            console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
+        except RuntimeError as e:
+            msg = str(e)
+            if "credits" in msg.lower():
+                console.print(Panel(
+                    f"[bold red]{msg}[/]",
+                    title="💳 Credits 不足",
+                    border_style="red",
+                ))
+            else:
+                console.print(f"[red]✗ LiveAvatar 連線失敗: {msg}[/]")
+            console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
         except Exception as e:
-            console.print(f"[red]LiveAvatar 連線失敗: {e}[/]")
+            console.print(f"[red]✗ LiveAvatar 連線失敗: {type(e).__name__}: {e}[/]")
             console.print("[yellow]繼續執行（無虛擬人渲染）...[/]")
 
         # ── Startup banner ────────────────────────────────────────────────────
@@ -425,12 +456,13 @@ class StreamingSession:
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Virtual Streamer")
     parser.add_argument("--avatar",   required=True, help="Avatar name（e.g. katya）")
-    parser.add_argument("--platform", required=True,
+    parser.add_argument("--platform", default="test",
                         choices=["test", "youtube", "tiktok"],
-                        help="直播平台：test / youtube / tiktok")
+                        help="直播平台：test（預設）/ youtube / tiktok")
     parser.add_argument("--theme",    default="直播", help="直播主題（預設：直播）")
     parser.add_argument("--chat-id",  default="",     help="YouTube Live Chat ID")
     parser.add_argument("--username", default="",     help="TikTok @username")
+    parser.add_argument("--debug",    action="store_true", help="顯示詳細 debug 訊息")
     args = parser.parse_args()
 
     cfg    = load_config()
@@ -448,6 +480,7 @@ async def main() -> None:
             platform=args.platform,
             youtube_chat_id=args.chat_id,
             tiktok_username=args.username,
+            debug=args.debug,
         )
     except KeyboardInterrupt:
         pass
