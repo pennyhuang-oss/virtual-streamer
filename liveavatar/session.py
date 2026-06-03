@@ -162,6 +162,26 @@ class LiveAvatarSession:
     def livekit_url(self) -> Optional[str]:
         return self._livekit_url
 
+    @property
+    def livekit_client_token(self) -> Optional[str]:
+        return self._livekit_client_token
+
+    @property
+    def browser_preview_url(self) -> Optional[str]:
+        """
+        Ready-to-open browser URL using LiveKit's official viewer app.
+        Works in Chrome/Firefox — shows the avatar's video stream directly.
+        Also paste this URL into OBS Browser Source.
+        """
+        if not self._livekit_url or not self._livekit_client_token:
+            return None
+        from urllib.parse import urlencode
+        params = urlencode({
+            "liveKitUrl": self._livekit_url,
+            "token": self._livekit_client_token,
+        })
+        return f"https://meet.livekit.io/custom?{params}"
+
     def age_minutes(self) -> float:
         return (time.time() - self._created_at) / 60 if self._created_at else 0
 

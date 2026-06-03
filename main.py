@@ -291,24 +291,37 @@ class StreamingSession:
         await self.la_session.connect_ws()
         console.print("[green]✓ Session 已重建[/]")
 
-    # ── OBS instructions ──────────────────────────────────────────────────────
+    # ── URL display ───────────────────────────────────────────────────────────
 
-    def _print_obs_guide(self, livekit_url: str) -> None:
-        console.print(Rule("[bold yellow]OBS 設定說明[/]"))
+    def _print_urls(self, livekit_url: str, browser_url: str) -> None:
+        console.print(Rule())
+
+        # ① LiveKit Room URL（for OBS Browser Source）
         console.print(Panel(
-            f"[bold yellow]LiveKit 預覽 URL[/]\n"
-            f"[bold white]{livekit_url}[/]\n\n"
-            "[dim]以上 URL 可直接在瀏覽器開啟預覽 Katya 畫面\n\n"
-            "[bold]OBS Browser Source 設定步驟：[/]\n"
-            "  1. OBS → 來源 → ＋ → 瀏覽器\n"
-            "  2. URL 貼上：https://meet.livekit.io/custom\n"
-            "     參數：?liveKitUrl=<URL>&token=<livekit_client_token>\n"
-            "     （token 可在 LiveAvatar Dashboard → Sessions 取得）\n"
-            "  3. 寬度 1920 × 高度 1080，勾選「關閉來源時停止播放」\n"
-            "  4. 或登入 liveavatar.com → Sessions → 找 Active Session → 複製嵌入連結\n\n"
-            "[bold yellow]建議：[/]用 LiveAvatar Dashboard 的 Session 預覽頁面 → 分享給 OBS[/dim]",
-            title="📺 如何在 OBS 看到 Katya",
+            f"[bold white]{livekit_url}[/]",
+            title="① LiveKit Room URL（貼入 OBS Browser Source 的 liveKitUrl 參數）",
+            border_style="cyan",
+            padding=(0, 1),
+        ))
+
+        # ② 瀏覽器直接開啟預覽
+        console.print(Panel(
+            f"[bold yellow]{browser_url}[/]",
+            title="② 瀏覽器預覽 — 直接複製貼上到 Chrome / Safari 即可看到 Katya",
             border_style="yellow",
+            padding=(0, 1),
+        ))
+
+        # OBS 步驟說明
+        console.print(Panel(
+            "1. 複製上方 [yellow]② 瀏覽器預覽連結[/yellow]\n"
+            "2. OBS → 來源 → ＋ → [bold]瀏覽器（Browser Source）[/bold]\n"
+            "3. 把連結貼入 URL 欄位\n"
+            "4. 寬 [bold]1920[/bold]  ×  高 [bold]1080[/bold]，勾選「關閉時停止播放」\n"
+            "5. 確定 → Katya 的畫面就會出現在 OBS",
+            title="📺 OBS 設定（3 分鐘完成）",
+            border_style="dim",
+            padding=(0, 2),
         ))
         console.print(Rule())
 
@@ -323,13 +336,15 @@ class StreamingSession:
         self._running = True
 
         # ── Connect LiveAvatar ────────────────────────────────────────────────
-        livekit_url = ""
+        livekit_url  = ""
+        browser_url  = ""
         try:
             console.print("[dim]建立 LiveAvatar session...[/]")
             await self.la_session.create()
             await self.la_session.start()
             await self.la_session.connect_ws()
             livekit_url = self.la_session.livekit_url or ""
+            browser_url = self.la_session.browser_preview_url or ""
             console.print("[green]✓ LiveAvatar 連線成功[/]")
         except Exception as e:
             console.print(f"[red]LiveAvatar 連線失敗: {e}[/]")
@@ -341,14 +356,13 @@ class StreamingSession:
             f"[bold green]虛擬主播直播系統啟動[/]\n"
             f"Avatar  : [cyan]{self.avatar['display_name']}[/]   主題: [cyan]{self.theme}[/]\n"
             f"平台    : [bold white]{platform_icons.get(platform, platform)}[/]\n"
-            f"Avatar ID: [dim]{self.avatar['avatar_id']}[/]\n\n"
-            f"[bold yellow]🎥 LiveKit URL[/]: {livekit_url or '[dim]未取得[/]'}",
+            f"Avatar ID: [dim]{self.avatar['avatar_id']}[/]",
             title="✦ VIRTUAL STREAMER ✦",
             border_style="green",
         ))
 
-        if livekit_url:
-            self._print_obs_guide(livekit_url)
+        if livekit_url and browser_url:
+            self._print_urls(livekit_url, browser_url)
 
         # ── Opening ───────────────────────────────────────────────────────────
         await self._speak_auto("opening")
