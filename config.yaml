@@ -1,0 +1,19 @@
+liveavatar:
+  api_key: ${LIVEAVATAR_API_KEY}
+  base_url: "https://api.heygen.com"
+  mode: LITE
+  session_max_minutes: 55
+
+claude:
+  api_key: ${ANTHROPIC_API_KEY}
+  model: claude-opus-4-6
+
+elevenlabs:
+  api_key: ${ELEVENLABS_API_KEY}
+  output_format: pcm_16000  # 16kHz PCM for LiveAvatar
+  model_id: eleven_multilingual_v2
+
+timers:
+  main_script_interval: 120   # seconds between main content scripts
+  cta_interval: 300           # seconds between CTA scripts
+  session_renew_minutes: 55
