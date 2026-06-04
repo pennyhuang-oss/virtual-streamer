@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Virtual Streamer – Avatar Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    #avatar-video { width: 100%; height: 100%; object-fit: contain; }
+    #status { position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+              background: rgba(0,0,0,.6); color: #fff; padding: 6px 16px;
+              border-radius: 20px; font-family: sans-serif; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <video id="avatar-video" autoplay playsinline muted></video>
+  <div id="status">⏳ 連線中…</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+  <script>
+    const params   = new URLSearchParams(location.search);
+    const wsUrl    = params.get('liveKitUrl');
+    const token    = params.get('token');
+    const videoEl  = document.getElementById('avatar-video');
+    const statusEl = document.getElementById('status');
+
+    if (!wsUrl || !token) {
+      statusEl.textContent = '❌ 缺少 liveKitUrl 或 token 參數';
+    } else {
+      const room = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
+
+      // 只訂閱影片軌道，忽略音頻（avatar 自帶音頻由 Python 送出）
+      room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, pub, participant) => {
+        if (track.kind === LivekitClient.Track.Kind.Video) {
+          track.attach(videoEl);
+          statusEl.style.display = 'none';
+        }
+      });
+
+      room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+        if (track.kind === LivekitClient.Track.Kind.Video) {
+          track.detach(videoEl);
+          statusEl.textContent = '⚠️ 影片串流中斷';
+          statusEl.style.display = '';
+        }
+      });
+
+      room.on(LivekitClient.RoomEvent.Disconnected, () => {
+        statusEl.textContent = '🔴 已斷線';
+        statusEl.style.display = '';
+      });
+
+      room.connect(wsUrl, token, { autoSubscribe: true })
+        .then(() => { statusEl.textContent = '✅ 已連線，等待影片…'; })
+        .catch(e  => { statusEl.textContent = '❌ 連線失敗：' + e.message; });
+    }
+  </script>
+</body>
+</html>
